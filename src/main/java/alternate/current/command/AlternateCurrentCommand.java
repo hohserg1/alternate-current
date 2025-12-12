@@ -5,21 +5,22 @@ import java.util.Collections;
 import java.util.List;
 
 import alternate.current.AlternateCurrentMod;
-import alternate.current.interfaces.mixin.IServerWorld;
+import alternate.current.mixin.ServerWorldMixin;
 import alternate.current.util.profiler.ProfilerResults;
 import alternate.current.wire.UpdateOrder;
 import alternate.current.wire.WireHandler;
 
+import net.minecraft.command.CommandBase;
+import net.minecraft.command.CommandException;
+import net.minecraft.command.ICommandSender;
+import net.minecraft.command.WrongUsageException;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.command.Command;
-import net.minecraft.server.command.exception.CommandException;
-import net.minecraft.server.command.exception.IncorrectUsageException;
-import net.minecraft.server.command.source.CommandSource;
-import net.minecraft.text.LiteralText;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.text.TextComponentString;
 import net.minecraft.world.World;
+import net.minecraft.world.WorldServer;
 
-public class AlternateCurrentCommand extends Command {
+public class AlternateCurrentCommand extends CommandBase {
 
 	@Override
 	public String getName() {
@@ -32,12 +33,12 @@ public class AlternateCurrentCommand extends Command {
 	}
 
 	@Override
-	public String getUsage(CommandSource source) {
+	public String getUsage(ICommandSender source) {
 		return AlternateCurrentMod.DEBUG ? "/alternatecurrent [on/off/updateOrder[ updateOrder]/resetProfiler]" : "/alternatecurrent [on/off/updateOrder[ updateOrder]]";
 	}
 
 	@Override
-	public void run(MinecraftServer server, CommandSource source, String[] args) throws CommandException {
+	public void execute(MinecraftServer server, ICommandSender source, String[] args) throws CommandException {
 		switch (args.length) {
 		case 0:
 			queryEnabled(source);
@@ -55,7 +56,7 @@ public class AlternateCurrentCommand extends Command {
 				return;
 			case "resetProfiler":
 				if (AlternateCurrentMod.DEBUG) {
-					sendSuccess(source, this, "profiler results have been cleared!");
+					notifyCommandListener(source, this, "profiler results have been cleared!");
 
 					ProfilerResults.log();
 					ProfilerResults.clear();
@@ -77,16 +78,16 @@ public class AlternateCurrentCommand extends Command {
 			}
 		}
 
-		throw new IncorrectUsageException(getUsage(source));
+		throw new WrongUsageException(getUsage(source));
 	}
 
 	@Override
-	public List<String> getSuggestions(MinecraftServer server, CommandSource source, String[] args, BlockPos pos) {
+	public List<String> getTabCompletions(MinecraftServer server, ICommandSender source, String[] args, BlockPos pos) {
 		switch (args.length) {
 		case 0:
 			return AlternateCurrentMod.DEBUG
-				? suggestMatching(args, "on", "off", "updateOrder", "resetProfiler")
-				: suggestMatching(args, "on", "off", "updateOrder");
+				? getListOfStringsMatchingLastWord(args, "on", "off", "updateOrder", "resetProfiler")
+				: getListOfStringsMatchingLastWord(args, "on", "off", "updateOrder");
 		case 1:
 			switch (args[0]) {
 			case "updateOrder":
@@ -96,7 +97,7 @@ public class AlternateCurrentCommand extends Command {
 					updateOrders.add(updateOrder.id());
 				}
 
-				return suggestMatching(args, updateOrders);
+				return getListOfStringsMatchingLastWord(args, updateOrders);
 			}
 		}
 
@@ -104,39 +105,39 @@ public class AlternateCurrentCommand extends Command {
 	}
 
 
-	private void queryEnabled(CommandSource source) {
-		World world = source.getSourceWorld();
-		WireHandler wireHandler = ((IServerWorld) world).alternate_current$getWireHandler();
+	private void queryEnabled(ICommandSender source) {
+		World world = source.getEntityWorld();
+		WireHandler wireHandler = ServerWorldMixin.wireHandler.get((WorldServer) world);
 
 		String state = wireHandler.getConfig().getEnabled()? "enabled" : "disabled";
-		source.sendMessage(new LiteralText(String.format("Alternate Current is currently %s", state)));
+		source.sendMessage(new TextComponentString(String.format("Alternate Current is currently %s", state)));
 	}
 
-	private void setEnabled(CommandSource source, boolean on) {
-		World world = source.getSourceWorld();
-		WireHandler wireHandler = ((IServerWorld) world).alternate_current$getWireHandler();
+	private void setEnabled(ICommandSender source, boolean on) {
+		World world = source.getEntityWorld();
+		WireHandler wireHandler = ServerWorldMixin.wireHandler.get((WorldServer) world);
 
 		wireHandler.getConfig().setEnabled(on);
 
 		String state = wireHandler.getConfig().getEnabled() ? "enabled" : "disabled";
-		sendSuccess(source, this, String.format("Alternate Current has been %s!", state));
+		notifyCommandListener(source, this, String.format("Alternate Current has been %s!", state));
 	}
 
-	private void queryUpdateOrder(CommandSource source) {
-		World world = source.getSourceWorld();
-		WireHandler wireHandler = ((IServerWorld) world).alternate_current$getWireHandler();
+	private void queryUpdateOrder(ICommandSender source) {
+		World world = source.getEntityWorld();
+		WireHandler wireHandler = ServerWorldMixin.wireHandler.get((WorldServer) world);
 
 		String value = wireHandler.getConfig().getUpdateOrder().id();
-		source.sendMessage(new LiteralText(String.format("Update order is currently %s", value)));
+		source.sendMessage(new TextComponentString(String.format("Update order is currently %s", value)));
 	}
 
-	private void setUpdateOrder(CommandSource source, UpdateOrder updateOrder) {
-		World world = source.getSourceWorld();
-		WireHandler wireHandler = ((IServerWorld) world).alternate_current$getWireHandler();
+	private void setUpdateOrder(ICommandSender source, UpdateOrder updateOrder) {
+		World world = source.getEntityWorld();
+		WireHandler wireHandler = ServerWorldMixin.wireHandler.get((WorldServer) world);
 
 		wireHandler.getConfig().setUpdateOrder(updateOrder);
 
 		String value = wireHandler.getConfig().getUpdateOrder().id();
-		sendSuccess(source, this, String.format("update order has been set to %s!", value));
+		notifyCommandListener(source, this, String.format("update order has been set to %s!", value));
 	}
 }

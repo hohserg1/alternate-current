@@ -1,11 +1,18 @@
 package alternate.current;
 
+import alternate.current.command.AlternateCurrentCommand;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.common.Mod.EventHandler;
+import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import alternate.current.util.profiler.ACProfiler;
 import alternate.current.util.profiler.Profiler;
 
+import static alternate.current.AlternateCurrentMod.*;
+
+@Mod(modid = MOD_ID, name = MOD_NAME, version = MOD_VERSION)
 public class AlternateCurrentMod {
 
 	public static final String MOD_ID = "alternate-current";
@@ -19,4 +26,9 @@ public class AlternateCurrentMod {
 	public static Profiler createProfiler() {
 		return DEBUG ? new ACProfiler() : Profiler.DUMMY;
 	}
+
+    @EventHandler
+    public void registerCommands(FMLServerStartingEvent event){
+        event.registerServerCommand(new AlternateCurrentCommand());
+    }
 }

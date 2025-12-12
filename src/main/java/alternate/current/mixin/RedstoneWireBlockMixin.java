@@ -1,76 +1,56 @@
 package alternate.current.mixin;
 
-import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import gloomyfolken.hooklib.api.*;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.world.WorldServer;
 
 import alternate.current.AlternateCurrentMod;
-import alternate.current.interfaces.mixin.IServerWorld;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.RedstoneWireBlock;
-import net.minecraft.block.state.BlockState;
+import net.minecraft.block.BlockRedstoneWire;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
-@Mixin(RedstoneWireBlock.class)
+@HookContainer
 public class RedstoneWireBlockMixin {
 
-	@Inject(
-		method = "updatePower",
-		cancellable = true,
-		at = @At(
-			value = "HEAD"
-		)
-	)
-	private void alternate_current$onUpdate(World world, BlockPos pos, BlockState state, CallbackInfoReturnable<BlockState> cir) {
+    @Hook(targetMethod = "updateSurroundingRedstone")
+    @OnBegin
+	public static ReturnSolve<IBlockState> alternate_current$onUpdate(BlockRedstoneWire wire, World world, BlockPos pos, IBlockState state) {
 		if (AlternateCurrentMod.on) {
 			// Using redirects for calls to this method makes conflicts with
 			// other mods more likely, so we inject-cancel instead.
-			cir.setReturnValue(state);
+            return ReturnSolve.yes(state);
+		}
+        return ReturnSolve.no();
+	}
+
+    @Hook(targetMethod = "onBlockAdded")
+    @OnMethodCall("updateSurroundingRedstone")
+	public static void alternate_current$onAdded(BlockRedstoneWire wire, World world, BlockPos pos, IBlockState state) {
+		if (AlternateCurrentMod.on) {
+            ServerWorldMixin.wireHandler.get((WorldServer) world).onWireAdded(pos);
 		}
 	}
 
-	@Inject(
-		method = "onAdded",
-		at = @At(
-			value = "INVOKE",
-			target = "Lnet/minecraft/block/RedstoneWireBlock;updatePower(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/BlockState;)Lnet/minecraft/block/state/BlockState;"
-		)
-	)
-	private void alternate_current$onAdded(World world, BlockPos pos, BlockState state, CallbackInfo ci) {
+    @Hook(targetMethod = "breakBlock")
+    @OnMethodCall("updateSurroundingRedstone")
+	public static void alternate_current$onRemoved(BlockRedstoneWire wire, World world, BlockPos pos, IBlockState state) {
 		if (AlternateCurrentMod.on) {
-			((IServerWorld)world).alternate_current$getWireHandler().onWireAdded(pos);
+            ServerWorldMixin.wireHandler.get((WorldServer) world).onWireRemoved(pos, state);
 		}
 	}
 
-	@Inject(
-		method = "onRemoved",
-		at = @At(
-			value = "INVOKE",
-			target = "Lnet/minecraft/block/RedstoneWireBlock;updatePower(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/BlockState;)Lnet/minecraft/block/state/BlockState;"
-		)
-	)
-	private void alternate_current$onRemoved(World world, BlockPos pos, BlockState state, CallbackInfo ci) {
+    @Hook(targetMethod = "neighborChanged")
+    @OnBegin
+	public static ReturnSolve<Void> alternate_current$onNeighborChanged(BlockRedstoneWire wire,
+                                                                        IBlockState state, World world, BlockPos pos, Block neighborBlock, BlockPos neighborPos) {
 		if (AlternateCurrentMod.on) {
-			((IServerWorld)world).alternate_current$getWireHandler().onWireRemoved(pos, state);
-		}
-	}
-
-	@Inject(
-		method = "neighborChanged",
-		cancellable = true,
-		at = @At(
-			value = "HEAD"
-		)
-	)
-	private void alternate_current$onNeighborChanged(BlockState state, World world, BlockPos pos, Block neighborBlock, BlockPos neighborPos, CallbackInfo ci) {
-		if (AlternateCurrentMod.on) {
-			if (((IServerWorld)world).alternate_current$getWireHandler().onWireUpdated(pos)) {
-				ci.cancel(); // needed to fix duplication bugs
+			if (ServerWorldMixin.wireHandler.get((WorldServer) world).onWireUpdated(pos)) {
+				// needed to fix duplication bugs
+                return ReturnSolve.yes(null);
 			}
 		}
+        return ReturnSolve.no();
 	}
 }

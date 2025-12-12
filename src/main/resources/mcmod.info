@@ -1,0 +1,16 @@
+[
+{
+  "modid": "alternate-current",
+  "name": "Alternate Current",
+  "description": "An efficient and non-locational redstone dust implementation.",
+  "version": "1.9.0",
+  "mcversion": "1.12.2",
+  "url": "https://github.com/hohserg1/alternate-current",
+  "updateUrl": "",
+  "authorList": ["Space Walker"],
+  "credits": "port to forge 1.12.2 by @hohserg",
+  "logoFile": "assets/alternate/current/icon.png",
+  "screenshots": [],
+  "dependencies": ["hooklib"]
+}
+]

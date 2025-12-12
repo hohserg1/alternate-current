@@ -3,10 +3,10 @@ package alternate.current.wire;
 import alternate.current.util.BlockUtil;
 import alternate.current.util.Redstone;
 
-import net.minecraft.block.Blocks;
-import net.minecraft.block.RedstoneWireBlock;
-import net.minecraft.block.state.BlockState;
-import net.minecraft.server.world.ServerWorld;
+import net.minecraft.block.BlockRedstoneWire;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.init.Blocks;
+import net.minecraft.world.WorldServer;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 
@@ -47,20 +47,20 @@ public class WireNode extends Node {
 	/** The next wire in the simple queue. */
 	WireNode next_wire;
 
-	WireNode(ServerWorld world, BlockPos pos, BlockState state) {
+	WireNode(WorldServer world, BlockPos pos, IBlockState state) {
 		super(world);
 
-		this.pos = pos.immutable();
+		this.pos = pos.toImmutable();
 		this.state = state;
 
 		this.connections = new WireConnectionManager(this);
 
-		this.virtualPower = this.currentPower = this.state.get(RedstoneWireBlock.POWER);
+		this.virtualPower = this.currentPower = this.state.getValue(BlockRedstoneWire.POWER);
 		this.priority = priority();
 	}
 
 	@Override
-	Node set(BlockPos pos, BlockState state, boolean clearNeighbors) {
+	Node set(BlockPos pos, IBlockState state, boolean clearNeighbors) {
 		throw new UnsupportedOperationException("Cannot update a WireNode!");
 	}
 
@@ -109,14 +109,14 @@ public class WireNode extends Node {
 		}
 
 		if (shouldBreak) {
-			state.getBlock().dropItems(world, pos, state, 0);
-			world.setBlockState(pos, Blocks.AIR.defaultState(), BlockUtil.FLAG_UPDATE_CLIENTS);
+			state.getBlock().dropBlockAsItem(world, pos, state, 0);
+			world.setBlockState(pos, Blocks.AIR.getDefaultState(), BlockUtil.FLAG_UPDATE_CLIENTS);
 
 			return true;
 		}
 
 		currentPower = MathHelper.clamp(virtualPower, Redstone.SIGNAL_MIN, Redstone.SIGNAL_MAX);
-		state = state.set(RedstoneWireBlock.POWER, currentPower);
+		state = state.withProperty(BlockRedstoneWire.POWER, currentPower);
 
 		return WorldHelper.setWireState(world, pos, state);
 	}

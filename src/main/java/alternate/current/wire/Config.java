@@ -8,20 +8,20 @@ import java.nio.file.Path;
 import java.util.Objects;
 
 import alternate.current.AlternateCurrentMod;
-import alternate.current.interfaces.mixin.IServerWorld;
 
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.world.dimension.DimensionType;
-import net.minecraft.world.storage.WorldStorage;
+import alternate.current.mixin.ServerWorldMixin;
+import net.minecraft.world.WorldServer;
+import net.minecraft.world.DimensionType;
+import net.minecraft.world.storage.ISaveHandler;
 
 
 public interface Config {
 
-	static Config forLevel(ServerWorld world, WorldStorage storage) {
-		if (world.dimension.getType() == DimensionType.OVERWORLD) {
+	static Config forLevel(WorldServer world, ISaveHandler storage) {
+		if (world.provider.getDimensionType() == DimensionType.OVERWORLD) {
 			return new Primary(storage);
 		} else {
-			return new Derived(((IServerWorld) world.getServer().getWorld(DimensionType.OVERWORLD.getId())).alternate_current$getWireHandler().getConfig());
+			return new Derived(ServerWorldMixin.wireHandler.get(world.getMinecraftServer().getWorld(DimensionType.OVERWORLD.getId())).getConfig());
 		}
 	}
 
@@ -46,8 +46,8 @@ public interface Config {
 
 		private boolean modified;
 
-		public Primary(WorldStorage storage) {
-			this.path = storage.getDir().toPath().resolve("alternate-current.conf");
+		public Primary(ISaveHandler storage) {
+			this.path = storage.getWorldDirectory().toPath().resolve("alternate-current.conf");
 		}
 
 		@Override

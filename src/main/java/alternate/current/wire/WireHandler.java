@@ -10,13 +10,13 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.ObserverBlock;
-import net.minecraft.block.state.BlockState;
-import net.minecraft.server.world.ServerWorld;
+import net.minecraft.block.BlockObserver;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.init.Blocks;
+import net.minecraft.world.WorldServer;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.world.storage.WorldStorage;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.world.storage.ISaveHandler;
 
 /**
  * This class handles power changes for redstone wire. The algorithm was
@@ -137,8 +137,8 @@ public class WireHandler {
 
 	public static class Directions {
 
-		public static final Direction[] ALL        = { Direction.WEST, Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.DOWN, Direction.UP };
-		public static final Direction[] HORIZONTAL = { Direction.WEST, Direction.NORTH, Direction.EAST, Direction.SOUTH };
+		public static final EnumFacing[] ALL        = { EnumFacing.WEST, EnumFacing.NORTH, EnumFacing.EAST, EnumFacing.SOUTH, EnumFacing.DOWN, EnumFacing.UP };
+		public static final EnumFacing[] HORIZONTAL = { EnumFacing.WEST, EnumFacing.NORTH, EnumFacing.EAST, EnumFacing.SOUTH };
 
 		// Indices for the arrays above.
 		// The cardinal directions are ordered clockwise. This allows
@@ -241,7 +241,7 @@ public class WireHandler {
 	// be only one WireHandler per world, in case redstone updates in multiple
 	// worlds at the same time. There are already mods that add multi-threading
 	// as well.
-	private final ServerWorld world;
+	private final WorldServer world;
 	private final Config config;
 
 	/** Map of wires and neighboring blocks. */
@@ -259,7 +259,7 @@ public class WireHandler {
 	/** Is this WireHandler currently working through the update queue? */
 	private boolean updating;
 
-	public WireHandler(ServerWorld world, WorldStorage storage) {
+	public WireHandler(WorldServer world, ISaveHandler storage) {
 		this.world = world;
 		this.config = Config.forLevel(world, storage);
 
@@ -318,7 +318,7 @@ public class WireHandler {
 	 * Otherwise, grab the next {@link alternate.current.wire.Node Node} from the
 	 * cache and update it.
 	 */
-	private Node getNextNode(BlockPos pos, BlockState state) {
+	private Node getNextNode(BlockPos pos, IBlockState state) {
 		return state.getBlock() == Blocks.REDSTONE_WIRE ? new WireNode(world, pos, state) : getNextNode().set(pos, state, true);
 	}
 
@@ -359,7 +359,7 @@ public class WireHandler {
 	 */
 	private Node revalidateNode(Node node) {
 		BlockPos pos = node.pos;
-		BlockState state = world.getBlockState(pos);
+		IBlockState state = world.getBlockState(pos);
 
 		boolean wasWire = node.isWire();
 		boolean isWire = state.getBlock() == Blocks.REDSTONE_WIRE;
@@ -394,7 +394,7 @@ public class WireHandler {
 		Node neighbor = node.neighbors[iDir];
 
 		if (neighbor == null || neighbor.invalid) {
-			Direction dir = Directions.ALL[iDir];
+			EnumFacing dir = Directions.ALL[iDir];
 			BlockPos pos = node.pos.offset(dir);
 
 			Node oldNeighbor = neighbor;
@@ -446,7 +446,7 @@ public class WireHandler {
 	/**
 	 * This method should be called whenever a wire is removed.
 	 */
-	public void onWireRemoved(BlockPos pos, BlockState state) {
+	public void onWireRemoved(BlockPos pos, IBlockState state) {
 		Node node = removeNode(pos);
 		WireNode wire;
 
@@ -588,7 +588,7 @@ public class WireHandler {
 		wire.discovered = true;
 		wire.searched = false;
 
-		if (!wire.removed && !wire.shouldBreak && !wire.state.getBlock().canSurvive(world, wire.pos)) {
+		if (!wire.removed && !wire.shouldBreak && !wire.state.getBlock().canPlaceBlockAt(world, wire.pos)) {
 			wire.shouldBreak = true;
 		}
 
@@ -685,7 +685,7 @@ public class WireHandler {
 				power = Math.max(power, getDirectSignalTo(wire, neighbor, Directions.iOpposite(iDir)));
 			}
 			if (neighbor.isSignalSource()) {
-				power = Math.max(power, neighbor.state.getSignal(world, neighbor.pos, Directions.ALL[iDir]));
+				power = Math.max(power, neighbor.state.getWeakPower(world, neighbor.pos, Directions.ALL[iDir]));
 			}
 
 			if (power >= POWER_MAX) {
@@ -707,7 +707,7 @@ public class WireHandler {
 			Node neighbor = getNeighbor(node, iDir);
 
 			if (neighbor.isSignalSource()) {
-				power = Math.max(power, neighbor.state.getDirectSignal(world, neighbor.pos, Directions.ALL[iDir]));
+				power = Math.max(power, neighbor.state.getStrongPower(world, neighbor.pos, Directions.ALL[iDir]));
 
 				if (power >= POWER_MAX) {
 					return POWER_MAX;
@@ -988,20 +988,20 @@ public class WireHandler {
 			// behavior
 			if (!neighbor.isWire() && neighbor.state.getBlock() == Blocks.OBSERVER) {
 				int iOpp = Directions.iOpposite(iDir);
-				Direction opp = Directions.ALL[iOpp];
+				EnumFacing opp = Directions.ALL[iOpp];
 
 				updateObserver(neighbor, opp, wirePos, wireBlock);
 			}
 		}
 	}
 
-	private void updateObserver(Node node, Direction dir, BlockPos neighborPos, Block neighborBlock) {
+	private void updateObserver(Node node, EnumFacing dir, BlockPos neighborPos, Block neighborBlock) {
 		BlockPos pos = node.pos;
-		BlockState state = world.getBlockState(node.pos);
+		IBlockState state = world.getBlockState(node.pos);
 		Block block = state.getBlock();
 
 		if (block == Blocks.OBSERVER) {
-			((ObserverBlock)block).neighborStateChanged(state, world, pos, neighborBlock, neighborPos);
+			((BlockObserver)block).observedNeighborChanged(state, world, pos, neighborBlock, neighborPos);
 		}
 	}
 
@@ -1055,7 +1055,7 @@ public class WireHandler {
 	 */
 	private void updateBlock(Node node, BlockPos neighborPos, Block neighborBlock) {
 		BlockPos pos = node.pos;
-		BlockState state = world.getBlockState(pos);
+		IBlockState state = world.getBlockState(pos);
 		state.neighborChanged(world, pos, neighborBlock, neighborPos);
 	}
 
