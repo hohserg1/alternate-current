@@ -25,6 +25,7 @@ bin/
 .classpath
 .project
 
-# fabric
-
 run/
+/run_client/
+/run_server
+/production/
