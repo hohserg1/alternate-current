@@ -50,15 +50,21 @@ repositories {
     flatDir {
         dirs "${project.rootDir}/libs"
     }
-    flatDir {
-        dirs 'F:\\Development\\modding\\_artifacts_'
-    }
+	def localRepo = 'F:\\Development\\modding\\_artifacts_'
+	if(new File(localRepo).exists()){
+	    flatDir {
+	        dirs localRepo
+	    }
+	}
+	maven {
+        url = uri("https://maven.pkg.github.com/hohserg1/HookLib")
+	}
 }
 
 dependencies {
     minecraft 'net.minecraftforge:forge:1.12.2-14.23.5.2860'
 
-    implementation "_ABC:hooklib:+"
+    implementation "io.gitlab.hohserg:hooklib:3.26"
 }
 
 jar {
