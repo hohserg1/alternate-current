@@ -57,7 +57,7 @@ repositories {
 	    }
 	}
 	maven {
-        url = uri("https://maven.pkg.github.com/hohserg1/HookLib")
+        url = uri("https://maven.pkg.github.com/hohserg1/")
 	}
 }
 
