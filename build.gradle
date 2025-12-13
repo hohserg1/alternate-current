@@ -46,25 +46,30 @@ minecraft {
     }
 }
 
+def localRepo = 'F:\\Development\\modding\\_artifacts_'
+def localAvailable = new File(localRepo).exists()
+
 repositories {
     flatDir {
         dirs "${project.rootDir}/libs"
     }
-	def localRepo = 'F:\\Development\\modding\\_artifacts_'
-	if(new File(localRepo).exists()){
+	if(localAvailable){
 	    flatDir {
 	        dirs localRepo
 	    }
-	}
-	maven {
-        url = uri("https://maven.pkg.github.com/hohserg1/")
-	}
+	} else {
+        maven { url 'https://jitpack.io' }
+    }
 }
 
 dependencies {
     minecraft 'net.minecraftforge:forge:1.12.2-14.23.5.2860'
 
-    implementation "io.gitlab.hohserg:hooklib:3.26"
+    if(localAvailable){
+        implementation "_ABC:hooklib:+"
+    } else {
+        implementation 'com.github.hohserg1:HookLib:3.26'
+    }
 }
 
 jar {
