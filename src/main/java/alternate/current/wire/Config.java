@@ -19,7 +19,7 @@ import net.minecraft.world.storage.ISaveHandler;
 public interface Config {
 
     static Config forLevel(WorldServer world) {
-        if (world.provider.getDimensionType() == DimensionType.OVERWORLD) {
+        if (world.provider.getDimension() == 0) {
             return new Primary();
         } else {
             return new Derived(ServerWorldMixin.getWireHandler(world.getMinecraftServer().getWorld(DimensionType.OVERWORLD.getId())).getConfig());
