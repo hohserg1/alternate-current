@@ -107,7 +107,7 @@ public class AlternateCurrentCommand extends CommandBase {
 
 	private void queryEnabled(ICommandSender source) {
 		World world = source.getEntityWorld();
-		WireHandler wireHandler = ServerWorldMixin.wireHandler.get((WorldServer) world);
+		WireHandler wireHandler = ServerWorldMixin.getWireHandler((WorldServer) world);
 
 		String state = wireHandler.getConfig().getEnabled()? "enabled" : "disabled";
 		source.sendMessage(new TextComponentString(String.format("Alternate Current is currently %s", state)));
@@ -115,7 +115,7 @@ public class AlternateCurrentCommand extends CommandBase {
 
 	private void setEnabled(ICommandSender source, boolean on) {
 		World world = source.getEntityWorld();
-		WireHandler wireHandler = ServerWorldMixin.wireHandler.get((WorldServer) world);
+		WireHandler wireHandler = ServerWorldMixin.getWireHandler((WorldServer) world);
 
 		wireHandler.getConfig().setEnabled(on);
 
@@ -125,7 +125,7 @@ public class AlternateCurrentCommand extends CommandBase {
 
 	private void queryUpdateOrder(ICommandSender source) {
 		World world = source.getEntityWorld();
-		WireHandler wireHandler = ServerWorldMixin.wireHandler.get((WorldServer) world);
+		WireHandler wireHandler = ServerWorldMixin.getWireHandler((WorldServer) world);
 
 		String value = wireHandler.getConfig().getUpdateOrder().id();
 		source.sendMessage(new TextComponentString(String.format("Update order is currently %s", value)));
@@ -133,7 +133,7 @@ public class AlternateCurrentCommand extends CommandBase {
 
 	private void setUpdateOrder(ICommandSender source, UpdateOrder updateOrder) {
 		World world = source.getEntityWorld();
-		WireHandler wireHandler = ServerWorldMixin.wireHandler.get((WorldServer) world);
+		WireHandler wireHandler = ServerWorldMixin.getWireHandler((WorldServer) world);
 
 		wireHandler.getConfig().setUpdateOrder(updateOrder);
 

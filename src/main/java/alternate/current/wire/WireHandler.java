@@ -259,9 +259,9 @@ public class WireHandler {
 	/** Is this WireHandler currently working through the update queue? */
 	private boolean updating;
 
-	public WireHandler(WorldServer world, ISaveHandler storage) {
+	public WireHandler(WorldServer world) {
 		this.world = world;
-		this.config = Config.forLevel(world, storage);
+		this.config = Config.forLevel(world);
 
 		this.config.load();
 

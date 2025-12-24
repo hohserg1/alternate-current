@@ -2,6 +2,7 @@ package alternate.current.wire;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -17,13 +18,13 @@ import net.minecraft.world.storage.ISaveHandler;
 
 public interface Config {
 
-	static Config forLevel(WorldServer world, ISaveHandler storage) {
-		if (world.provider.getDimensionType() == DimensionType.OVERWORLD) {
-			return new Primary(storage);
-		} else {
-			return new Derived(ServerWorldMixin.wireHandler.get(world.getMinecraftServer().getWorld(DimensionType.OVERWORLD.getId())).getConfig());
-		}
-	}
+    static Config forLevel(WorldServer world) {
+        if (world.provider.getDimensionType() == DimensionType.OVERWORLD) {
+            return new Primary();
+        } else {
+            return new Derived(ServerWorldMixin.getWireHandler(world.getMinecraftServer().getWorld(DimensionType.OVERWORLD.getId())).getConfig());
+        }
+    }
 
 	boolean getEnabled();
 
@@ -46,8 +47,8 @@ public interface Config {
 
 		private boolean modified;
 
-		public Primary(ISaveHandler storage) {
-			this.path = storage.getWorldDirectory().toPath().resolve("alternate-current.conf");
+		public Primary() {
+			this.path = new File("alternate-current.conf").toPath();
 		}
 
 		@Override
